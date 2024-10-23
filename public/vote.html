@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vote</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+<div class="w-screen h-screen flex flex-col items-center justify-center gap-2">
+    <h1 class="text-4xl font-bold">Voting screen</h1>
+
+    <h2 class="text-xl">Who are you?</h2>
+
+    <div class="flex flex-col gap-2">
+        <button id="client-1" class="p-4 w-72 bg-blue-400 rounded">Chris</button>
+        <button id="client-2" class="p-4 w-72 border border-blue-400 rounded">Ivy</button>
+    </div>
+
+    <h2 class="text-xl">Do you like the image?</h2>
+
+    <div class="flex flex-col gap-2">
+        <button id="yes" class="p-4 w-72 border border-gray-900 rounded">Yes</button>
+        <button id="no" class="p-4 w-72 border border-gray-900 rounded">No</button>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    let client = 'client1';
+
+    const client1Button = document.getElementById('client-1');
+    const client2Button = document.getElementById('client-2');
+    const yesButton = document.getElementById('yes');
+    const noButton = document.getElementById('no');
+
+    const resetDecisionBtns = () => {
+        noButton.classList.add('border', 'border-gray-900');
+        noButton.classList.remove('bg-red-400');
+        yesButton.classList.add('border', 'border-gray-900');
+        yesButton.classList.remove('bg-green-400');
+    }
+
+    client1Button.addEventListener('click', () => {
+        client = 'client1';
+        client2Button.classList.add('border', 'border-blue-400');
+        client2Button.classList.remove('bg-blue-400');
+        client1Button.classList.add('bg-blue-400');
+        resetDecisionBtns();
+    });
+
+    client2Button.addEventListener('click', () => {
+        client = 'client2';
+        client1Button.classList.add('border', 'border-blue-400');
+        client1Button.classList.remove('bg-blue-400');
+        client2Button.classList.add('bg-blue-400');
+        resetDecisionBtns();
+    });
+
+
+    yesButton.addEventListener('click', () => {
+        socket.emit('vote', { client, vote: 'Yes' });
+        yesButton.classList.remove('border', 'border-gray-900');
+        yesButton.classList.add('bg-green-400');
+        noButton.classList.add('border', 'border-gray-900');
+        noButton.classList.remove('bg-red-400');
+    });
+
+    noButton.addEventListener('click', () => {
+        socket.emit('vote', { client, vote: 'No' });
+        yesButton.classList.add('border', 'border-gray-900');
+        yesButton.classList.remove('bg-green-400');
+        noButton.classList.remove('border', 'border-gray-900');
+        noButton.classList.add('bg-red-400');
+    });
+
+    socket.on('result', (result) => {
+        console.log(`The image was ${result}!`);
+        resetDecisionBtns();
+    });
+</script>
+</body>
+</html>

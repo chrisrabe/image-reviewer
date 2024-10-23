@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rating Screen</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Full-screen overlay for the image */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .overlay img {
+            max-width: 90vw;
+            max-height: 90vh;
+        }
+    </style>
+</head>
+<body>
+<div class="w-screen flex flex-col items-center justify-center gap-2 overflow-y-scroll p-10">
+    <h1 class="text-4xl font-bold">Rating Mode</h1>
+
+    <h2 class="text-xl">Who are you?</h2>
+
+    <div class="flex flex-col gap-2">
+        <button id="client-1" class="p-4 w-72 bg-blue-400 rounded">Chris</button>
+        <button id="client-2" class="p-4 w-72 border border-blue-400 rounded">Ivy</button>
+    </div>
+    <p id="image-name"></p>
+
+    <div id="image-container">
+        <img id="image" src="" alt="Image preview" class="w-96 cursor-pointer"/>
+    </div>
+
+    <h2 class="text-xl">Rate the image from 1 to 5</h2>
+
+    <div class="flex flex-col gap-2">
+        <button class="rate-btn p-4 w-72 border border-gray-900 rounded" data-rating="1">1</button>
+        <button class="rate-btn p-4 w-72 border border-gray-900 rounded" data-rating="2">2</button>
+        <button class="rate-btn p-4 w-72 border border-gray-900 rounded" data-rating="3">3</button>
+        <button class="rate-btn p-4 w-72 border border-gray-900 rounded" data-rating="4">4</button>
+        <button class="rate-btn p-4 w-72 border border-gray-900 rounded" data-rating="5">5</button>
+    </div>
+</div>
+
+<!-- Fullscreen overlay for displaying the original-size image -->
+<div id="overlay" class="overlay">
+    <img id="overlay-image" src="" alt="Fullscreen Image"/>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    let client = 'client1';
+    let imageName = 'None';
+
+    const client1Button = document.getElementById('client-1');
+    const client2Button = document.getElementById('client-2');
+    const imageElement = document.getElementById('image');
+    const overlay = document.getElementById('overlay');
+    const overlayImage = document.getElementById('overlay-image');
+    const imageText = document.getElementById('image-name');
+
+    client1Button.addEventListener('click', () => {
+        client = 'client1';
+        client2Button.classList.add('border', 'border-blue-400');
+        client2Button.classList.remove('bg-blue-400');
+        client1Button.classList.add('bg-blue-400');
+    });
+
+    client2Button.addEventListener('click', () => {
+        client = 'client2';
+        client1Button.classList.add('border', 'border-blue-400');
+        client1Button.classList.remove('bg-blue-400');
+        client2Button.classList.add('bg-blue-400');
+    });
+
+    // Load next image
+    function loadImage() {
+        fetch('/image')
+            .then(response => {
+                if (!response.ok) throw new Error('No more images');
+                return response.blob();
+            })
+            .then(blob => {
+                const imageUrl = URL.createObjectURL(blob);
+                imageElement.src = imageUrl;
+            })
+            .catch(err => alert(err.message));
+    }
+
+    const allRateButtons = document.querySelectorAll('.rate-btn');
+
+    // Send rating
+    allRateButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const rating = e.target.getAttribute('data-rating');
+            allRateButtons.forEach(btn => btn.classList.remove('bg-blue-300'));
+            btn.classList.add('bg-blue-300');
+            socket.emit('rate', { imageName, rating, client });
+        });
+    });
+
+    socket.on('imageLoaded', ({imageFile}) => {
+        imageName = imageFile;
+        imageText.textContent = imageFile;
+    })
+
+    socket.on('rated', () => {
+        loadImage();
+        allRateButtons.forEach(btn => btn.classList.remove('bg-blue-300'));
+    });
+
+    // Show overlay when the image is clicked
+    imageElement.addEventListener('click', () => {
+        overlayImage.src = imageElement.src; // Set the same image for the overlay
+        overlay.style.display = 'flex'; // Show the overlay
+    });
+
+    // Hide the overlay when clicked
+    overlay.addEventListener('click', () => {
+        overlay.style.display = 'none'; // Hide the overlay
+    });
+
+    loadImage();
+</script>
+</body>
+</html>

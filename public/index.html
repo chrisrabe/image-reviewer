@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Review App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+<div class="flex flex-row">
+    <div class="w-1/5 flex flex-col p-4 gap-4">
+        <h1 class="text-4xl">Image Review</h1>
+        <div id="client1-vote" class="p-4 text-center bg-gray-200 rounded">Chris</div>
+        <div id="client2-vote" class="p-4 text-center bg-gray-200 rounded">Ivy</div>
+    </div>
+    <div class="w-full">
+        <img id="image" src="" alt="Image preview"/>
+    </div>
+</div>
+
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    const client1Vote = document.getElementById('client1-vote');
+    const client2Vote = document.getElementById('client2-vote');
+
+    // Function to load the next image
+    function loadImage() {
+        fetch('/image')
+            .then(response => {
+                if (!response.ok) throw new Error('No more images');
+                return response.blob();
+            })
+            .then(blob => {
+                const imageUrl = URL.createObjectURL(blob);
+                document.getElementById('image').src = imageUrl;
+                client1Vote.classList.remove('bg-green-200', 'bg-red-200')
+                client1Vote.classList.add('bg-gray-200')
+                client2Vote.classList.remove('bg-green-200', 'bg-red-200')
+                client2Vote.classList.add('bg-gray-200')
+            })
+            .catch(err => alert(err.message));
+    }
+
+    // Function to move the image based on action (accept or reject)
+    function moveImage(action) {
+        fetch(`/move?action=${action}`, { method: 'POST' })
+            .then(() => loadImage())
+            .catch(err => alert(err.message));
+    }
+
+    // Keyboard event listeners for left and right arrow keys
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowLeft') {
+            moveImage('reject');
+        } else if (event.key === 'ArrowRight') {
+            moveImage('accept');
+        }
+    });
+
+    const handleVote = (clientElem, vote) => {
+        if(vote === 'Yes') {
+            clientElem.classList.remove('bg-red-200', 'bg-gray-200');
+            clientElem.classList.add('bg-green-200');
+        } else {
+            clientElem.classList.remove('bg-green-200', 'bg-gray-200');
+            clientElem.classList.add('bg-red-200');
+        }
+    }
+
+    // Listen for updates from the server about client votes
+    socket.on('voteUpdated', (data) => {
+        if (data.client === 'client1') {
+            handleVote(client1Vote, data.vote);
+        } else if (data.client === 'client2') {
+            handleVote(client2Vote, data.vote);
+        }
+    });
+
+    socket.on('result', () => {
+        loadImage()
+    })
+
+    socket.on('rated', () => {
+        loadImage()
+    });
+
+    loadImage();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+node_modules
+.idea
+.DS_Store
+
+accepted/*
+![accepted/.gitkeep]
+
+images/*
+![images/.gitkeep]
+
+rated/*
+![rated/.gitkeep]
+
+rejected/*
+![rejected/.gitkeep]
